@@ -1,0 +1,8 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = true
+	hooksPath = /tmp/TauCetiWorker-stat-false/host-repositories/no-hooks
+[remote "origin"]
+	url = https://127.0.0.1:42863/operator/source
+	fetch = +refs/heads/*:refs/remotes/origin/*
