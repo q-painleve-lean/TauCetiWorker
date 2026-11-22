@@ -25,6 +25,7 @@ from http.client import HTTPException
 from pathlib import Path
 from uuid import uuid4
 
+from . import codex_credits
 from . import oauth as credential_refresh
 from .config import Config, log
 from .constants import ALLOWED_TASKS, POLL, SANDBOX_DEFAULT
@@ -2169,6 +2170,10 @@ class Quota:
             raw_lim = w.get("limit_window_seconds")
             name = "session" if _finite_num(raw_lim) and raw_lim <= 24 * 3600 else "weekly"
             wins.append(_classify_window(name, w.get("used_percent"), elapsed, resets, limit_reached, "codex"))
+        # A spent window the account's Codex credits extend is over pace, not exhausted (codex_credits;
+        # off unless TAUCETI_CODEX_CREDIT_FLOOR is set).
+        if codex_credits.spendable(payload):
+            wins = [replace(x, status="over-pace") if x.status == "exhausted" else x for x in wins]
         # No usable window at all ⇒ fail-closed (unavailable), never fail-OPEN on an empty all(...) that
         # is vacuously True.
         avail = bool(wins) and all(x.status == "under-pace" for x in wins) and not limit_reached
