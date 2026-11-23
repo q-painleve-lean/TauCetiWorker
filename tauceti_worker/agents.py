@@ -1093,6 +1093,25 @@ def run_agent_host(
             " If TAUCETI_PR_CACHE_MISS=1, your PR history is uncached: merge/rebase onto current main "
             "and fetch again before building; if that cannot be done, report the cache miss and stop."
         )
+    elif (
+        cache_note
+        and _dependency_caches()
+        and any((cwd / name).is_file() for name in ("lakefile.toml", "lakefile.lean"))
+    ):
+        from tauceti_tools.templates import ASSETS
+
+        prompt += (
+            "\n\nBuild cache preparation: Mathlib and its dependencies come from this host's shared, "
+            "read-only build, attached under `.lake/packages`. Before this round started, the worker "
+            "fetched TauCeti's prebuilt outputs for the revision `lake-manifest.json` pinned then, from "
+            "TauCeti's public Lake cache. Never build TauCeti from source: it takes an unrealistic amount "
+            "of time. Never run `lake exe cache get` or `lake update`. If merging/rebasing changes "
+            "TauCeti's pin in `lake-manifest.json`, fetch its cache before building:\n"
+            f"python3 {ASSETS / DEPENDENCY_CACHE_SCRIPT} .\n"
+            "If that fetch fails, or `lake build` starts compiling TauCeti modules for any reason (some "
+            "outputs may be missing from the cache), stop the build and report it instead of building "
+            "TauCeti."
+        )
     argv, env, stdin_text = host_agent_launch(prompt, profile)
     if resume:
         if profile.provider == "codex":
@@ -1678,6 +1697,39 @@ def host_build_cache_context(cwd: Path, env: dict, logdir: Path, *, cache_wait: 
         env.pop(ENABLE, None)
 
 
+def _dependency_caches() -> bool:
+    """Whether a pinned upstream publishes its own Lake cache (`[[upstreams]]` with both cache URLs)."""
+    try:
+        upstreams = json.loads(os.environ.get("TAUCETI_UPSTREAMS") or "[]")
+    except ValueError:
+        return False
+    return any(isinstance(u, dict) and u.get("cache_artifact_url") and u.get("cache_revision_url") for u in upstreams)
+
+
+DEPENDENCY_CACHE_SCRIPT = "scripts/dependency-cache-get.py"
+
+
+def _fetch_dependency_caches(cwd: Path, env: dict, logdir: Path, prefix=()) -> None:
+    """Restore pinned upstreams' outputs (all of TauCeti, for a downstream) from their public caches
+    with the script CI runs. Compiling such a package from source takes unrealistically long, so a
+    round whose fetch fails does not start; it is retried like any other build-cache outage."""
+    if not _dependency_caches():
+        return
+    from tauceti_tools.templates import ASSETS
+
+    logdir.mkdir(parents=True, exist_ok=True)
+    logf = logdir / "dependency-cache-get.log"
+    with tempfile.NamedTemporaryFile("r", prefix="dependency-cache-env-") as handoff, logf.open("ab") as output:
+        script = ASSETS / DEPENDENCY_CACHE_SCRIPT
+        _cache_fetch([*prefix, "python3", str(script), str(cwd)], cwd, {**env, "GITHUB_ENV": handoff.name}, output, None)
+        env.update(line.rstrip("\n").split("=", 1) for line in handoff if "=" in line)
+    if env.get("LAKE_ARTIFACT_CACHE") != "true":
+        message = f"pinned upstream build cache unavailable; agent not started (see {logf})"
+        log(message)
+        raise BuildCacheUnavailable(message, log_file=logf)
+    log("host build caches: pinned upstreams' outputs restored from their public caches")
+
+
 @contextlib.contextmanager
 def _host_build_cache_context(cwd: Path, env: dict, logdir: Path, mathlib_view):
     if not TAUCETI_CACHE_SERVICE:
@@ -1694,6 +1746,7 @@ def _host_build_cache_context(cwd: Path, env: dict, logdir: Path, mathlib_view):
                     env["TAUCETI_SHARED_MATHLIB_VIEW"] = json.dumps(prefix)
                 try:
                     restore()
+                    _fetch_dependency_caches(cwd, env, logdir, prefix or ())
                     yield prefix
                 finally:
                     env.pop("TAUCETI_SHARED_MATHLIB_VIEW", None)
