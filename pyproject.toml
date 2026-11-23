@@ -9,7 +9,7 @@ description = "Autonomous worker for the TauCetiProject/TauCeti Lean library"
 requires-python = ">=3.11"
 dependencies = [
     "tauceti-review @ git+https://github.com/TauCetiProject/TauCetiReview@9f6561e2c2b86813b779de548cc49b6434fd8e58",
-    "tauceti-tools @ git+https://github.com/TauCetiProject/TauCetiTools@main",
+    "tauceti-tools @ git+https://github.com/q-painleve-lean/TauCetiTools@downstream",
     "rich>=13",
     "textual>=8,<9",
     "psutil>=7; sys_platform == 'darwin'",
@@ -57,3 +57,8 @@ ignore = ["E501", "UP031"]
 "tests/*" = ["E402"]
 # Operator scripts also bootstrap the source checkout before package imports.
 "services/github-state/scripts/*.py" = ["E402"]
+
+[tool.uv]
+# QPainleve downstream: tauceti-review also requires upstream Tools; resolve every requirement
+# to the q-painleve-lean fork (see DOWNSTREAM.md).
+override-dependencies = ["tauceti-tools @ git+https://github.com/q-painleve-lean/TauCetiTools@downstream"]

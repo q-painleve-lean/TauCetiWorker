@@ -9,6 +9,7 @@ Each change is one commit with a test. Remove a change once upstream carries the
 | Change | Why | Files | Remove when |
 | --- | --- | --- | --- |
 | Spend Codex credits above a floor once a window is spent | The pacer reads only the plan's usage windows, so once a weekly window reaches 100% every Codex worker waits for its reset even with credits left (it waited two days with 59,005 credits). With `TAUCETI_CODEX_CREDIT_FLOOR` set (QPainleve: 20000 in each worker's `env`), a spent window the credits extend reads as over pace: `ignore_quota` workers run, paced workers still wait, and spending stops at the floor or when the overage limit is reached. Unset, behaviour is upstream's | `tauceti_worker/codex_credits.py`, `tauceti_worker/quota.py` (`_codex_from_payload`), `tests/quota_codex_credits.py`, `tests/run-all` | upstream's pacer accounts for Codex credits |
+| Use the q-painleve-lean TauCetiTools fork | The worker reads Tools' survey contract to decide which merge-queue recovery requests to act on. Upstream's contract trusts only Tau Ceti's automation, so the QPainleve sweep's requests (posted as `qpainleve-automation[bot]`) were ignored. The fork's `downstream` adds trusted logins from `TAUCETI_REBASE_AUTHORS` (QPainleve: `qpainleve-automation[bot]` in each worker's `env`). `[tool.uv] override-dependencies` resolves every `tauceti-tools` requirement, including `tauceti-review`'s, to the fork | `pyproject.toml` | the upstream Tools contract lets a downstream name its own sweep App |
 
 ## Running
 
