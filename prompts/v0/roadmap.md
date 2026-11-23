@@ -28,6 +28,11 @@ __SOURCE_GUIDANCE__- Before writing any declaration, `grep` the pinned Mathlib s
 ## Claim your target (so two agents don't author the same thing)
 Once you have settled on a target, derive a short stable id for it and claim it BEFORE you start building. This lets other autonomous workers see the target is taken; it is cooperative, not a hard lock.
 - **Target id:** `<slug>` = the target's most identifying phrase (its declaration name if it has one, else the key noun phrase of its statement/docstring), lowercased with every run of non-alphanumeric characters replaced by a single `-`. Keep it short and deterministic — another agent picking the *same* target should produce the *same* slug. Example: "the Galois group of a multiquadratic field is (ℤ/2)ⁿ" → `galois-group-multiquadratic-z2n`.
+- **Check the claims other agents hold.** Before claiming, list the live author claims in this roadmap:
+  ```
+  "__BIN__/claim.sh" list --full | grep '^author/<target-roadmap>/'
+  ```
+  Each line is a key and its lease; a lease past its `expires_at` (Unix seconds) no longer holds. If a live claim's slug names the same declaration, statement or milestone step as your target, in any wording, the target is taken: choose a different target, as for exit `1` below.
 - **Claim it:**
   ```
   "__BIN__/claim.sh" acquire "author/<target-roadmap>/<slug>"

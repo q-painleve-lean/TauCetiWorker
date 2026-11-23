@@ -250,6 +250,7 @@ RUN_STDLIB=(
   roadmap_claims.py
   roadmap_umbrella.py
   roadmap_claim_namespace.py
+  roadmap_claim_list.py
   round_crash_reasons.py
   round_file_changes.py
   round_group_sweep.py
