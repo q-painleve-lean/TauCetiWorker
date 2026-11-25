@@ -252,6 +252,7 @@ RUN_STDLIB=(
   roadmap_claim_namespace.py
   roadmap_claim_list.py
   roadmap_pr_size.py
+  roadmap_pr_units.py
   dependency_cache_round.py
   round_crash_reasons.py
   round_file_changes.py

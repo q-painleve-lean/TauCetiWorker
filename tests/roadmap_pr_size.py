@@ -23,7 +23,6 @@ class SizeTarget(unittest.TestCase):
                 self.assertEqual(text.count("Aim for ~1200–2000 lines of genuine, non-vacuous content."), 1)
                 self.assertNotIn("500–1200", text)
                 self.assertIn("A shorter PR that closes a milestone beats a longer peripheral one", text)
-                self.assertIn("smaller-but-green beats bigger-but-broken", text)
 
 
 if __name__ == "__main__":
